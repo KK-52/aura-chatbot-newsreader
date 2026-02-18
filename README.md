@@ -1,4 +1,4 @@
-# Aura RAG - Serverless Real-time Web Intelligence
+# Aura chatbot - Serverless Real-time Web Intelligence
 
 An AI-powered Retrieval-Augmented Generation (RAG) system that allows users to chat with live web content instantly.
 
