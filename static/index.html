@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA</title>
+    <link rel="stylesheet" href="style.css?v=3">
+    <!-- Google Sans / Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Highlight.js for code blocks -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="location.reload()">
+                    <i class="fa-solid fa-plus"></i> New Chat
+                </button>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="section-label">Active Sources</div>
+                <div id="source-list" class="source-list">
+                    <div class="empty-state-sidebar">No sources added.</div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="ingest-box">
+                    <div class="ingest-input-wrapper">
+                        <i class="fa-solid fa-link icon-left"></i>
+                        <input type="url" id="urlInput" placeholder="Add URL context..."
+                            onkeypress="handleIngestEnter(event)">
+                    </div>
+                </div>
+                <!-- Status below input -->
+                <div id="status-indicator" class="status-mini hidden">
+                    <span id="status-text">Ready</span>
+                </div>
+
+                <div class="user-profile">
+                    <div class="avatar-sm">U</div>
+                    <div class="user-info">
+                        <span class="name">User</span>
+                        <span class="plan">Standard</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="main-chat">
+            <header class="top-bar">
+                <div class="model-selector">
+                    <span>AURA 2.0</span> <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </header>
+
+            <div id="chat-history" class="chat-scroll-area">
+                <!-- Welcome Screen -->
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="logo-large">
+                        <i class="fa-solid fa-atom"></i>
+                    </div>
+                    <h1>How can I help you today?</h1>
+                </div>
+            </div>
+
+            <div class="input-area-container">
+                <div class="input-box">
+                    <input type="text" id="user-query" placeholder="Message AURA..." onkeypress="handleEnter(event)">
+                    <button id="send-btn" onclick="sendQuery()" disabled>
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                </div>
+                <div class="disclaimer">
+                    AURA can make mistakes. Consider checking important information.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="logo-large mb-4">
+                    <i class="fa-solid fa-atom"></i>
+                </div>
+                <h2>Welcome back</h2>
+                <p>Enter your username to access your session</p>
+            </div>
+            
+            <div class="login-form">
+                <input type="text" id="username-input" placeholder="Username (e.g. msdho)" class="login-input">
+                <button id="login-btn" class="login-btn-primary" onclick="handleLogin()">Continue</button>
+                
+                <div class="divider">
+                    <span>or</span>
+                </div>
+                
+                <button class="login-btn-secondary" onclick="handleGuestLogin()">
+                    <i class="fa-solid fa-user-secret"></i> Continue as Guest
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="app.js?v=4"></script>
+</body>
+
+</html>

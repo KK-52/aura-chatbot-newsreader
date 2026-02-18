@@ -1,0 +1,11 @@
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.0.0
+chromadb>=0.4.0
+google-generativeai
+openai
+beautifulsoup4
+requests
+python-dotenv
+python-multipart
+jinja2
