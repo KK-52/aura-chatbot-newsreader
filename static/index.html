@@ -101,15 +101,22 @@
                 <h2>Welcome back</h2>
                 <p>Enter your username to access your session</p>
             </div>
-            
+
             <div class="login-form">
-                <input type="text" id="username-input" placeholder="Username (e.g. msdho)" class="login-input">
-                <button id="login-btn" class="login-btn-primary" onclick="handleLogin()">Continue</button>
-                
+                <input type="text" id="username-input" placeholder="Username" class="login-input">
+                <input type="password" id="password-input" placeholder="Password" class="login-input">
+
+                <button id="login-btn" class="login-btn-primary" onclick="handleAuthAction()">Login</button>
+
+                <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);">
+                    Need an account? <a href="#" id="toggle-auth" onclick="toggleAuthMode()"
+                        style="color: #6c5ce7;">Register</a>
+                </p>
+
                 <div class="divider">
                     <span>or</span>
                 </div>
-                
+
                 <button class="login-btn-secondary" onclick="handleGuestLogin()">
                     <i class="fa-solid fa-user-secret"></i> Continue as Guest
                 </button>

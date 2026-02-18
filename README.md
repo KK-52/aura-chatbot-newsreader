@@ -94,7 +94,7 @@ python main.py
 -   **Accuracy**: High fidelity retrieval using semantic chunking.
 
 ### Live Demo
-[**Click here to try the Live App**](https://url-rag-service-679178381345.us-central1.run.app)
+[**Click here to try the Live App (Auth Enabled)**](https://url-rag-auth-679178381345.us-central1.run.app)
 
 ## 🔮 Future Improvements
 

@@ -104,6 +104,28 @@ def query_rag(query_text: str, n_results: int = 5, session_id: str = None):
         "answer": summary
     }
 
+def get_urls(session_id: str) -> list[str]:
+    """
+    Returns a list of unique URLs ingested by the session_id.
+    """
+    coll = get_rag_components()
+    try:
+        results = coll.get(
+            where={"session_id": session_id},
+            include=["metadatas"]
+        )
+        
+        urls = set()
+        if results['metadatas']:
+            for meta in results['metadatas']:
+                if meta and "url" in meta:
+                    urls.add(meta["url"])
+        
+        return list(urls)
+    except Exception as e:
+        logger.error(f"Error fetching URLs: {e}")
+        return []
+
 def generate_answer_with_llm(context: str, query: str) -> str:
     """
     Generates an answer using a real LLM if available, otherwise falls back.

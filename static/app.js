@@ -7,18 +7,24 @@ const sendBtn = document.getElementById('send-btn');
 const urlInput = document.getElementById('urlInput');
 
 // --- Session Management ---
-// --- Session Management ---
-let sessionId = localStorage.getItem('rag_session_id');
+let authToken = localStorage.getItem('rag_auth_token');
+let username = localStorage.getItem('rag_username');
+let isRegisterMode = false;
+
 const loginModal = document.getElementById('login-modal');
 const usernameInput = document.getElementById('username-input');
+const passwordInput = document.getElementById('password-input');
+const loginBtn = document.getElementById('login-btn');
+const toggleLink = document.getElementById('toggle-auth');
 
 // Check if user is logged in
-if (!sessionId) {
+if (!authToken) {
     showLoginModal();
 } else {
     // Restore session
-    console.log(`Restored Session ID: ${sessionId}`);
-    updateProfileUI(sessionId);
+    console.log(`Restored Session for: ${username}`);
+    updateProfileUI(username);
+    fetchUrls();
 }
 
 function showLoginModal() {
@@ -26,68 +32,146 @@ function showLoginModal() {
     usernameInput.focus();
 }
 
-function handleLogin() {
-    const rawUsername = usernameInput.value.trim();
-    if (!rawUsername) return;
+function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    if (isRegisterMode) {
+        loginBtn.innerText = "Register";
+        document.querySelector('.login-header h2').innerText = "Create Account";
+        document.querySelector('.login-header p').innerText = "Sign up to start chatting";
+        toggleLink.innerText = "Login";
+    } else {
+        loginBtn.innerText = "Login";
+        document.querySelector('.login-header h2').innerText = "Welcome back";
+        document.querySelector('.login-header p').innerText = "Enter your credentials to access your session";
+        toggleLink.innerText = "Register";
+    }
+}
 
-    // Create a consistent ID from username (or just use it directly)
-    // For simplicity, we use the username as the session ID so it can be memorized/reused.
-    sessionId = rawUsername.toLowerCase().replace(/\s+/g, '-');
+async function handleAuthAction() {
+    const user = usernameInput.value.trim();
+    const pass = passwordInput.value.trim();
 
-    completeLogin(sessionId);
+    if (!user || !pass) {
+        alert("Please enter both username and password.");
+        return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Processing...";
+
+    try {
+        if (isRegisterMode) {
+            await registerUser(user, pass);
+        } else {
+            await loginUser(user, pass);
+        }
+    } catch (error) {
+        alert(error.message);
+        loginBtn.disabled = false;
+        loginBtn.innerText = isRegisterMode ? "Register" : "Login";
+    }
+}
+
+async function loginUser(user, pass) {
+    const formData = new URLSearchParams();
+    formData.append('username', user);
+    formData.append('password', pass);
+
+    const response = await fetch('/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Login failed');
+
+    setSession(user, data.access_token);
+}
+
+async function registerUser(user, pass) {
+    const formData = new URLSearchParams();
+    formData.append('username', user);
+    formData.append('password', pass);
+
+    const response = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Registration failed');
+
+    setSession(user, data.access_token);
+}
+
+function setSession(user, token) {
+    authToken = token;
+    username = user;
+    localStorage.setItem('rag_auth_token', token);
+    localStorage.setItem('rag_username', user);
+
+    loginModal.classList.remove('active');
+    updateProfileUI(user);
+    fetchUrls();
 }
 
 function handleGuestLogin() {
-    // Generate random UUID for guest
-    sessionId = crypto.randomUUID();
-    completeLogin(sessionId);
+    // Generate random guest credentials
+    const guestUser = `guest_${Math.random().toString(36).substr(2, 6)}`;
+    const guestPass = "guest123";
+
+    // We need to register this guest user first
+    isRegisterMode = true;
+    registerUser(guestUser, guestPass).catch(err => {
+        // If already exists (rare), try login
+        loginUser(guestUser, guestPass);
+    });
 }
 
-function completeLogin(id) {
-    localStorage.setItem('rag_session_id', id);
-    loginModal.classList.remove('active');
-    console.log(`Session Started: ${id}`);
-    updateProfileUI(id);
+function logout() {
+    localStorage.removeItem('rag_auth_token');
+    localStorage.removeItem('rag_username');
+    location.reload();
 }
 
-function updateProfileUI(id) {
+function updateProfileUI(name) {
     const nameEl = document.querySelector('.user-info .name');
     const avatarEl = document.querySelector('.user-profile .avatar-sm');
 
     if (nameEl && avatarEl) {
-        // Truncate if long UUID
-        const displayName = id.length > 15 ? 'Guest' : id;
-        nameEl.innerText = displayName;
-        avatarEl.innerText = displayName.charAt(0).toUpperCase();
+        nameEl.innerText = name;
+        avatarEl.innerText = name.charAt(0).toUpperCase();
+
+        // Add logout handler to profile
+        document.querySelector('.user-profile').onclick = () => {
+            if (confirm("Log out?")) logout();
+        };
     }
 }
 
 // Allow Enter key in login
-usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLogin();
+passwordInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleAuthAction();
 });
 
 // --- Ingestion Logic ---
 async function ingestUrl() {
     const url = urlInput.value.trim();
+    if (!url) return;
 
-    if (!url) {
-        logToSidebar('No URL provided');
-        return;
-    }
-
-    // UI Updates
     showStatus('Indexing...');
     logToSidebar(`Indexing: ${url}`);
 
     try {
         const response = await fetch('/ingest', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                url: url,
-                session_id: sessionId
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ url: url })
         });
 
         const result = await response.json();
@@ -97,13 +181,35 @@ async function ingestUrl() {
             addSourceToSidebar(url);
             hideStatus();
         } else {
+            if (response.status === 401) { logout(); return; }
             const errorMsg = result.detail || 'Unknown Error';
-            logToSidebar(`Failed: ${errorMsg}`);
             showStatus(`Error: ${errorMsg}`, true);
         }
     } catch (error) {
-        logToSidebar('Network Error');
-        showStatus('Error', true);
+        showStatus('Network Error', true);
+    }
+}
+
+async function fetchUrls() {
+    try {
+        const response = await fetch('/session/urls', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const list = document.getElementById('source-list');
+            list.innerHTML = ''; // Clear existing
+
+            if (data.urls.length === 0) {
+                list.innerHTML = '<div class="empty-state-sidebar">No sources added.</div>';
+            } else {
+                data.urls.forEach(url => addSourceToSidebar(url));
+            }
+        } else if (response.status === 401) {
+            logout();
+        }
+    } catch (e) {
+        console.error("Failed to fetch URLs", e);
     }
 }
 
@@ -116,8 +222,13 @@ function addSourceToSidebar(url) {
     const empty = list.querySelector('.empty-state-sidebar');
     if (empty) empty.remove();
 
+    // Check if already exists
+    const existing = Array.from(list.children).find(child => child.dataset.url === url);
+    if (existing) return;
+
     const item = document.createElement('div');
     item.className = 'source-item';
+    item.dataset.url = url;
     const displayUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '').substring(0, 25);
 
     item.innerHTML = `
@@ -153,24 +264,21 @@ async function sendQuery() {
     const query = input.value.trim();
     if (!query) return;
 
-    // Hide Welcome Screen on first message
     if (welcomeScreen) welcomeScreen.style.display = 'none';
 
-    // Add User Message
     appendMessage(query, 'user');
     input.value = '';
 
-    // Create placeholder for bot response
     const botMsgId = appendMessage('<div class="spinner-xs"></div>', 'bot');
 
     try {
         const response = await fetch('/query', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: query,
-                session_id: sessionId
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ query: query })
         });
 
         const result = await response.json();
@@ -178,6 +286,7 @@ async function sendQuery() {
         if (response.ok) {
             updateBotMessage(botMsgId, result.answer);
         } else {
+            if (response.status === 401) { logout(); return; }
             updateBotMessage(botMsgId, "**Error:** Failed to generate response.");
         }
     } catch (error) {
@@ -194,15 +303,13 @@ function appendMessage(text, sender) {
 
     const isBot = sender === 'bot';
 
-    // Avatar
     const avatar = document.createElement('div');
     avatar.className = `message-avatar ${isBot ? 'bot-avatar' : 'user-avatar'}`;
     avatar.innerHTML = isBot ? '<i class="fa-solid fa-sparkles"></i>' : 'U';
 
-    // Content
     const content = document.createElement('div');
     content.className = 'message-content';
-    content.innerHTML = text; // Initial content
+    content.innerHTML = text;
 
     div.appendChild(avatar);
     div.appendChild(content);
@@ -218,7 +325,6 @@ function updateBotMessage(id, text) {
 
     const contentDiv = msgRow.querySelector('.message-content');
 
-    // Simple Markdown Parsing
     let html = text
         .replace(/^### (.*$)/gim, '<h3>$1</h3>')
         .replace(/^## (.*$)/gim, '<h2>$1</h2>')
@@ -230,7 +336,6 @@ function updateBotMessage(id, text) {
 
     contentDiv.innerHTML = html;
 
-    // Re-highlight code blocks
     contentDiv.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightElement(block);
     });
@@ -242,7 +347,6 @@ function scrollToBottom() {
     chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// Enable/Disable Send Button
 document.getElementById('user-query').addEventListener('input', function (e) {
     sendBtn.disabled = e.target.value.trim() === '';
 });

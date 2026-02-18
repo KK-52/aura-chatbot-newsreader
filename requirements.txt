@@ -9,3 +9,5 @@ requests
 python-dotenv
 python-multipart
 jinja2
+python-jose[cryptography]
+passlib[bcrypt]
